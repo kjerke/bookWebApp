@@ -15,28 +15,32 @@ import java.util.Map;
  */
 public interface DataAccess {
 
-    void closeConnection() throws SQLException;
-
     
-    /
+    
+    
+     void closeConnection() throws SQLException;
+
+    /**
+     * Returns records from a table. Requires and open connection.
+     * @param tableName
+     * @param maxRecords
+     * @return
+     * @throws SQLException
+     */
+    
+     public abstract int createRecord(String tableName, List<String> colNames, 
+            List<Object> colValues) throws SQLException;
+     
+    public int deleteRecordById(String tableName, String pkColName, 
+            Object pkValue) throws ClassNotFoundException, 
+            SQLException;
+    
     List<Map<String, Object>> getAllRecords(String tableName, int maxRecords) throws SQLException, ClassNotFoundException;
 
-    String getDriverClass();
+  public abstract void openConnection(String driverClass, 
+            String url, String userName, String password) 
+            throws ClassNotFoundException, SQLException;
 
-    String getPassword();
 
-    String getUrl();
-
-    String getUsername();
-
-    void openConnection() throws ClassNotFoundException, SQLException;
-
-    void setDriverClass(String driverClass);
-
-    void setPassword(String password);
-
-    void setUrl(String url);
-
-    void setUsername(String username);
     
 }

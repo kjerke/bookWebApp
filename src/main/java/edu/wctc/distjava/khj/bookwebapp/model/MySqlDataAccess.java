@@ -14,9 +14,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.Vector;
 
 /**
@@ -24,28 +26,17 @@ import java.util.Vector;
  * @author kevinjerke
  */
 public class MySqlDataAccess implements DataAccess {
+        private final int ALL_RECORDS = 0;
+        private final boolean DEBUG = true;
+
     private Connection conn;
     private Statement stmt;
     private PreparedStatement pstmt;
     private ResultSet rs;
-    private String driverClass;
-    private String url;
-    private String userName;
-    private String password;
-    
-        
-    private final int ALL_RECORDS = 0;
-    
-    public MySqlDataAccess(String driverClass,
-        String url, String userName, String password) {
-        
-        setDriverClass(driverClass);
-        setUrl(url);
-        setUsername(userName);
-        setPassword(password);
-    }
-    
-    public void openConnection()
+   
+
+    public void openConnection(String driverClass, 
+            String url, String userName, String password) 
             throws ClassNotFoundException, SQLException {
         
         Class.forName (driverClass);
@@ -56,40 +47,72 @@ public class MySqlDataAccess implements DataAccess {
         if(conn !=null) conn.close();
     }
     
-    public int createRecord(String tableName, List<String> colnames, List<Object> colValues) {
+       
+    public int createRecord(String tableName, List<String> colNames, 
+            List<Object> colValues) throws SQLException {
         
-    }
-    
-    public int deleteRecordById(String tableName, String pkColName, Object pkValue) throws ClassNotFoundException, SQLException {
-        
-        String sql = "DELETE FROM" + tableName + "WHERE " + pkColName + " = ";
-        
-        if(pkValue instanceof String) {
-            sql += "'" + pkValue.toString() + "'";
-        } else {
-            sql += Long.parseLong(pkValue.toString());
+        String sql = "INSERT INTO " + tableName + " " ;
+        StringJoiner sj = new StringJoiner(", ","(",")");
+        for(String col : colNames) {
+            sj.add(col);
         }
         
-        openConnection();
-        pstmt = conn.prepareStatement(sql);
-        pstmt.setObject(1, pkValue);
-        int recsDeleted = pstmt.executeUpdate();
-        closeConnection();
         
-        return recsDeleted;
+        sql += sj.toString();
+        sql += " VALUES ";
+        
+        
+        
+        sj = new StringJoiner(", ","(",")");
+        for (Object value : colValues) {
+            sj.add("?");
+        }
+          sql += sj.toString();
+        if(DEBUG) System.out.println(sql); 
+        pstmt = conn.prepareStatement(sql);
+        
+        for(int i=1; i <= colValues.size(); i++) {
+            pstmt.setObject(i, colValues.get(i-1));
+        }
+        
+        
+        return pstmt.executeUpdate();
     }
     
-    public List<Map<String, Object>> getAllRecords(String tableName, int maxRecords) throws SQLException, ClassNotFoundException {
-        List<Map<String, Object>> rawData = new Vector<>();
+    public int deleteRecordById(String tableName, String pkColName, 
+            Object pkValue) throws ClassNotFoundException, 
+            SQLException {
+        
+        String sql = "DELETE FROM " + tableName + " WHERE " 
+                + pkColName + " = ?";
+        
+ 
+        pstmt = conn.prepareStatement(sql);
+        pstmt.setObject(1, pkValue);
+        return pstmt.executeUpdate();
+     
+    }
+    
+    /**
+     * Returns records from a table. Requires and open connection.
+     * @param tableName
+     * @param maxRecords
+     * @return
+     * @throws SQLException 
+     */
+    public List<Map<String,Object>> getAllRecords(String tableName, int maxRecords) 
+            throws SQLException, ClassNotFoundException {
+        
+        List<Map<String,Object>> rawData = new Vector<>();
         String sql = "";
         
         if(maxRecords > ALL_RECORDS) {
-        sql = "select * from " + tableName + " limit " + maxRecords;
+            sql = "select * from " + tableName + " limit " + maxRecords;
         } else {
             sql = "select * from " + tableName;
         }
         
-        openConnection();
+     
         stmt = conn.createStatement();
         rs = stmt.executeQuery(sql);
         
@@ -99,63 +122,48 @@ public class MySqlDataAccess implements DataAccess {
         
         while( rs.next() ) {
             record = new LinkedHashMap<>();
-            for(int colNum= 1; colNum <= colCount; colNum++){
+            for(int colNum=1; colNum <= colCount; colNum++) {
                 record.put(rsmd.getColumnName(colNum), rs.getObject(colNum));
             }
             rawData.add(record);
         }
-        closeConnection();
-        
+ 
         return rawData;
+    }
+
+   
     
-    }
-
-    public String getDriverClass() {
-        return driverClass;
-    }
-
-    public final void setDriverClass(String driverClass) {
-        this.driverClass = driverClass;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public final void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getUsername() {
-        return userName;
-    }
-
-    public final void setUsername(String username) {
-        this.userName = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public final void setPassword(String password) {
-        this.password = password;
-    }
-    
-    public static void main(String[] args) throws SQLException, ClassNotFoundException { 
-        MySqlDataAccess db = new MySqlDataAccess(
-        "com.mysql.jdbc.Driver",
-        "jdbc:mysql://localhost:3306/book",
-        "root", "admin"
-        );
+    public static void main(String[] args) throws SQLException, ClassNotFoundException {
         
-        int recsDeleted = db.deleteRecordById("author", "author_Id", new Integer(50));
+        DataAccess db = new MySqlDataAccess();
         
-        List<Map<String, Object>> list = db.getAllRecords("author", 0);
+        db.openConnection( "com.mysql.jdbc.Driver",
+               "jdbc:mysql://localhost:3306/book",
+                "root", "admin"
+               );
         
-        for(Map<String, Object> rec : list) {
-            System.out.println(rec);
-        }
+        
+        int recsAdded = db.createRecord("author", 
+                Arrays.asList("author_name", "date_added"), 
+                Arrays.asList("Bob Jones","2010-02-11"));
+              
+                db.closeConnection();
+        
+                System.out.println("Recs created: " + recsAdded);
+//               db.openConnection( "com.mysql.jdbc.Driver",
+//                "jdbc:mysql://localhost:3306/book",
+//                "root", "admin"
+//               );
+//        
+//        int recsDeleted = db.deleteRecordById("author", "author_id", new Integer(52));
+//        System.out.println("No. of Recs Deleted: " + recsDeleted);
+//        List<Map<String,Object>> list = db.getAllRecords("author", 0);
+//        
+//        for(Map<String,Object> rec : list) {
+//            System.out.println(rec);
+//        }
+//        db.closeConnection();
+        
     }
     
 }

@@ -35,20 +35,30 @@ public class AuthorDao implements IAuthorDao {
         setPassword(password);
         setDb(db);
     }
+    
+   
 
     public final int removeAuthorById(Integer id) throws ClassNotFoundException, SQLException {
         if(id == null || id < 1) {
-            throws new IllegalArgumentException("id must be a Integer greater than 0");
+            throw new IllegalArgumentException("id must be a Integer greater than 0");
         }
         
+        db.openConnection(driverClass, url, userName, password);
         
-        return db.deleteRecordById("author", "author_id", id);
-
+        
+        int recsDeleted = db.deleteRecordById(AUTHOR_TBL, AUTHOR_PK, id);
+        
+        db.closeConnection();
+        
+        return recsDeleted;
     }
     
     
     @Override
     public final List<Author> getListOfAuthors() throws SQLException, ClassNotFoundException {
+        
+        db.openConnection(driverClass, url, userName, password);
+        
         List<Author> list = new Vector<>();        
         List<Map<String,Object>> rawData = 
                 db.getAllRecords("author", 0);
@@ -83,7 +93,8 @@ public class AuthorDao implements IAuthorDao {
             
            list.add(author);        
     }
-   
+        db.closeConnection();
+        
         return list;
     }
     
@@ -133,9 +144,7 @@ public class AuthorDao implements IAuthorDao {
         "com.mysql.jdbc.Driver",
         "jdbc:mysql://localhost:3306/book",
         "root", "admin",
-                new MySqlDataAccess("com.mysql.jdbc.Driver",
-        "jdbc:mysql://localhost:3306/book",
-        "root", "admin")
+                new MySqlDataAccess()
         );
         
         int recsDeleted = dao.removeAuthorById(20);

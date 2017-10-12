@@ -51,9 +51,7 @@ public class AuthorController extends HttpServlet {
             "com.mysql.jdbc.Driver",
             "jdbc:mysql://localhost:3306/book",
             "root", "admin",
-            new MySqlDataAccess("com.mysql.jdbc.Driver",
-            "jdbc:mysql://localhost:3306/book",
-            "root", "admin")
+            new MySqlDataAccess()
         );
         
         AuthorService authorService = 

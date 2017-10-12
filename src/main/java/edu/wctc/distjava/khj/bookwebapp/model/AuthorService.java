@@ -24,13 +24,17 @@ public class AuthorService {
         setAuthorDao(authorDao);
     }
     
-    public final int removeAuthorById(Integer id) throws ClassNotFoundException, SQLException, NumberFormatException {
-        if(id == null) {
-            throws new IllegalArgumentException("id must be a Integer greater than 0");
+   public final int removeAuthorById(String id) 
+            throws ClassNotFoundException, SQLException, 
+            NumberFormatException {
+        
+        if (id == null) {
+            throw new IllegalArgumentException("id must be a Integer greater than 0");
         }
         
         Integer value = Integer.parseInt(id);
-        return authorDao.removeAuthorById(id);
+
+        return authorDao.removeAuthorById(value);
     }
     
     public List<Author> getAuthorList() 
@@ -54,15 +58,13 @@ public class AuthorService {
             "com.mysql.jdbc.Driver",
             "jdbc:mysql://localhost:3306/book",
             "root", "admin",
-            new MySqlDataAccess("com.mysql.jdbc.Driver",
-            "jdbc:mysql://localhost:3306/book",
-            "root", "admin")
+            new MySqlDataAccess()
         );
         
         AuthorService authorService = 
                 new AuthorService(dao);
         
-        int recsDeleted = authorService.removeAuthorById("53");
+        int recsDeleted = authorService.removeAuthorById("1");
         
         List<Author> list = authorService.getAuthorList();
         
